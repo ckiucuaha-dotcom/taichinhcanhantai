@@ -1448,8 +1448,9 @@ body.light-mode .form-control {
         border-radius: 10px;
     }
     
-    /* Hide backup module in mobile navigation bar */
-    .sidebar-backup {
+    /* Hide backup and cloud modules in mobile navigation bar */
+    .sidebar-backup,
+    .sidebar-cloud {
         display: none !important;
     }
     

@@ -55,6 +55,14 @@
                 </ul>
             </nav>
             
+            <!-- Cloud Sync Actions -->
+            <div class="sidebar-cloud" style="padding: 15px 20px 0 20px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                <span style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">Đồng bộ Đám mây (Cloud)</span>
+                <button class="btn btn-secondary btn-sm" id="btn-cloud-config" style="width: 100%; font-size: 11px; justify-content: flex-start; padding: 6px 10px; border-radius: 8px;">
+                    <i class="fa-solid fa-cloud" style="color: var(--primary); font-size: 12px; margin-right: 6px;"></i><span>Cấu hình Cloud Gist</span>
+                </button>
+            </div>
+            
             <!-- Backup & Restore Actions -->
             <div class="sidebar-backup" style="padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
                 <span style="font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">Sao lưu & Phục hồi</span>
@@ -501,6 +509,71 @@
                         <span id="save-spinner" class="spinner hidden"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
                         <span>Lưu giao dịch</span>
                     </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cloud Configuration Modal -->
+    <div class="modal-backdrop hidden" id="modal-cloud-config">
+        <div class="modal-container glass-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cloud text-primary"></i> Cấu hình Đồng bộ GitHub Gist</h3>
+                <button class="btn-close" id="btn-close-cloud-modal" type="button"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <form id="form-cloud-config">
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 15px;">
+                    <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                        Đồng bộ dữ liệu của bạn lên GitHub Gist cá nhân dưới dạng tệp ẩn (Secret Gist). Giúp bạn sử dụng web 24/7 từ điện thoại (4G) mà không cần bật máy tính ở nhà.
+                    </p>
+                    
+                    <!-- GitHub PAT Token -->
+                    <div class="form-group">
+                        <label for="cloud-github-token">GitHub Personal Access Token (PAT)</label>
+                        <input type="password" id="cloud-github-token" class="form-control" placeholder="ghp_xxxxxxxxxxxx" required>
+                        <span class="form-sub-label" style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+                            Token cần có quyền truy cập <code style="background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px; font-family: monospace; color: var(--primary);">gist</code>. <a href="https://github.com/settings/tokens/new?scopes=gist&description=ZenFinance%20Sync" target="_blank" style="color: var(--primary); text-decoration: underline;">Tạo token tại đây</a>.
+                        </span>
+                    </div>
+
+                    <!-- Gist ID -->
+                    <div class="form-group">
+                        <label for="cloud-gist-id">GitHub Gist ID</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="cloud-gist-id" class="form-control" placeholder="Để trống nếu muốn tự động tạo mới..." style="flex: 1;">
+                            <button type="button" class="btn btn-secondary btn-sm" id="btn-create-gist" style="font-size: 11px; padding: 0 12px; white-space: nowrap; height: 38px;">
+                                <span id="create-gist-spinner" class="spinner hidden" style="margin-right: 4px;"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                                <span>Tạo Gist mới</span>
+                            </button>
+                        </div>
+                        <span class="form-sub-label" style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;">
+                            Nếu đã có Gist từ máy khác, hãy dán ID (chuỗi 32 ký tự) vào đây.
+                        </span>
+                    </div>
+
+                    <!-- Sync Options (Visible if already configured) -->
+                    <div id="cloud-sync-actions" class="hidden" style="margin-top: 10px; padding-top: 15px; border-top: 1px dashed var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+                        <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-arrows-rotate" style="margin-right: 6px; color: var(--primary);"></i>Thao tác Đồng bộ thủ công</span>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <button type="button" class="btn btn-secondary btn-sm" id="btn-push-cloud" style="font-size: 11px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <span id="push-cloud-spinner" class="spinner hidden"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                                <i id="push-cloud-icon" class="fa-solid fa-cloud-arrow-up" style="color: var(--surplus);"></i>Đẩy Local lên Cloud
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="btn-pull-cloud" style="font-size: 11px; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <span id="pull-cloud-spinner" class="spinner hidden"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                                <i id="pull-cloud-icon" class="fa-solid fa-cloud-arrow-down" style="color: var(--primary);"></i>Tải Cloud về Local
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <button type="button" class="btn btn-danger btn-sm" id="btn-disconnect-cloud" style="font-size: 12px; padding: 8px 12px;">Ngắt kết nối</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-cloud-modal">Đóng</button>
+                        <button type="submit" class="btn btn-primary" id="btn-save-cloud">Lưu cấu hình</button>
+                    </div>
                 </div>
             </form>
         </div>
