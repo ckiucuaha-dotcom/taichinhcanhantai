@@ -524,7 +524,7 @@ async function loadAppData() {
         
         // Try fetching static database.json from GitHub Pages host
         try {
-            const staticResponse = await originalFetch('database.json');
+            const staticResponse = await originalFetch(`database.json?t=${Date.now()}`);
             if (staticResponse.ok) {
                 const staticData = await staticResponse.json();
                 appData.fi_target = staticData.fi_target || 4500000000;
