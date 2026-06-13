@@ -1928,6 +1928,7 @@ window.importDataJSON = async function(event) {
             showToast('Lỗi', 'Không thể đọc tệp sao lưu. Vui lòng kiểm tra lại!', 'error');
             event.target.value = '';
         }
+    };
     reader.readAsText(file);
 };
 
