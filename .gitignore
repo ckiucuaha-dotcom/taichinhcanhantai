@@ -10,7 +10,7 @@ __pycache__/
 *.pyd
 
 # User private data (Dữ liệu tài chính cá nhân - Cực kỳ quan trọng, không commit lên GitHub công khai!)
-database.json
+/database.json
 database_backup_before_clean.json
 
 # Local config & SSH Tunnel outputs

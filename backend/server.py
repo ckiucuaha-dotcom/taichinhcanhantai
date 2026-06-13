@@ -33,10 +33,60 @@ def load_db():
             "transactions": []
         }
 
+def git_push_database():
+    def task():
+        try:
+            print("[Git Sync] Starting git push database to GitHub...")
+            workspace_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
+            import subprocess
+            import time
+            
+            # Step 1: Add frontend/database.json
+            subprocess.run(["git", "add", "frontend/database.json"], cwd=workspace_root, check=True)
+            
+            # Step 2: Check status to see if there are any changes
+            status = subprocess.run(["git", "status", "--porcelain", "frontend/database.json"], cwd=workspace_root, capture_output=True, text=True)
+            if status.stdout.strip():
+                # We have changes to commit
+                commit_msg = f"Update transaction database [bot] - {time.strftime('%Y-%m-%d %H:%M:%S')}"
+                subprocess.run(["git", "commit", "-m", commit_msg], cwd=workspace_root, check=True)
+                
+                # Step 3: Push main branch
+                subprocess.run(["git", "push", "origin", "main"], cwd=workspace_root, check=True)
+                
+                # Step 4: Push gh-pages branch (split prefix)
+                print("[Git Sync] Running git subtree push to gh-pages...")
+                subprocess.run(["git", "subtree", "push", "--prefix", "frontend", "origin", "gh-pages"], cwd=workspace_root, check=True)
+                print("[Git Sync] Git push completed successfully!")
+            else:
+                print("[Git Sync] No database changes to commit/push.")
+        except Exception as e:
+            print(f"[Git Sync] Error during git push: {e}")
+            
+    threading.Thread(target=task, daemon=True).start()
+
 def save_db(data):
     try:
+        # Save master database in root directory
         with open(DB_PATH, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+            
+        # Save sanitized database for public frontend deployment
+        sanitized_data = {
+            "fi_target": data.get("fi_target", 4500000000),
+            "transactions": data.get("transactions", [])
+        }
+        frontend_db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend', 'database.json')
+        try:
+            with open(frontend_db_path, 'w', encoding='utf-8') as f:
+                json.dump(sanitized_data, f, ensure_ascii=False, indent=2)
+        except Exception as fe:
+            print(f"Error saving frontend/database.json: {fe}")
+            
+        # Trigger Git push to sync with web
+        git_push_database()
+        
         return True
     except Exception as e:
         print(f"Error saving database.json: {e}")
