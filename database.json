@@ -533,6 +533,17 @@
       "id": "tx_0f9b40a8",
       "seq": 51,
       "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-12",
+      "group": "KHOẢN THU",
+      "category": "Nợ trả",
+      "item": "d trả tiền",
+      "amount": 2100000,
+      "id": "tx_47d56a37",
+      "seq": 48,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "d"
     }
   ]
 }
