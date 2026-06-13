@@ -24,6 +24,9 @@ let expenseDonutChart = null;
 let lastTransactionsHash = '';
 let lastCloudFetchTime = 0;
 
+// ID của giao dịch đang được chỉnh sửa (null = đang ở chế độ thêm mới)
+let editingTxId = null;
+
 // Ghi đè window.fetch gốc để intercept các cuộc gọi API khi dùng Cloud Gist
 const originalFetch = window.fetch;
 window.fetch = async function(url, options) {
@@ -361,6 +364,9 @@ function initEventListeners() {
     const amountWordsLabel = document.getElementById('amount-words');
     
     const openModalFunc = () => {
+        editingTxId = null; // Chế độ thêm mới
+        document.getElementById('modal-tx-title').innerHTML = '<i class="fa-solid fa-file-invoice-dollar text-primary"></i> Ghi nhận Giao dịch Mới';
+        document.getElementById('btn-save-tx-label').innerText = 'Lưu giao dịch';
         formAddTx.reset();
         const localDate = new Date();
         const year = localDate.getFullYear();
@@ -1576,6 +1582,9 @@ function renderLedgerTable() {
             <td>${t.item}</td>
             <td class="text-right ${valClass}">${sign}${formatVND(t.amount)}</td>
             <td class="text-center">
+                <button class="btn btn-secondary btn-sm" onclick="editTransaction('${t.id}')" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; color: var(--primary); border-color: rgba(99, 102, 241, 0.2); margin-right: 4px;" title="Sửa giao dịch này">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
                 <button class="btn btn-secondary btn-sm" onclick="deleteTransaction('${t.id}')" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; color: var(--expense); border-color: rgba(248, 113, 113, 0.2);" title="Xóa giao dịch này">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
@@ -1611,43 +1620,55 @@ async function handleFormSubmit(e) {
         item: document.getElementById('tx-item').value.trim(),
         amount: parseFloat(document.getElementById('tx-amount').value)
     };
-    
+
+    const isEditing = !!editingTxId;
+    const apiUrl = isEditing ? `${apiBase}/api/edit` : `${apiBase}/api/transaction`;
+    if (isEditing) tx.id = editingTxId;
+
     try {
-        const response = await fetch(`${apiBase}/api/transaction`, {
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(tx)
         });
-        
+
         const resData = await response.json();
         if (resData.status === 'success') {
             appData.fi_target = resData.fi_target;
             appData.transactions = resData.transactions;
-            
+
             // Recache
             localStorage.setItem('cached_fi_target', resData.fi_target);
             localStorage.setItem('cached_transactions', JSON.stringify(resData.transactions));
-            
+
             initApp();
-            showToast('Đã lưu giao dịch', 'Giao dịch mới đã được lưu vào máy chủ!');
+            showToast(isEditing ? 'Đã cập nhật' : 'Đã lưu giao dịch', isEditing ? 'Giao dịch đã được cập nhật!' : 'Giao dịch mới đã được lưu vào máy chủ!');
             document.getElementById('modal-add-tx').classList.add('hidden');
         } else {
             throw new Error(resData.message || 'Server error occurred');
         }
     } catch (err) {
         console.warn('Backend sync failed, storing transaction locally in browser cache...', err);
-        
+
         // Offline Save Fallback
-        tx.id = 'tx_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 9);
-        tx.row = appData.transactions.length + 1;
-        appData.transactions.push(tx);
-        
+        if (isEditing) {
+            const idx = appData.transactions.findIndex(t => t.id === editingTxId);
+            if (idx !== -1) {
+                appData.transactions[idx] = { ...appData.transactions[idx], ...tx };
+            }
+        } else {
+            tx.id = 'tx_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 9);
+            tx.row = appData.transactions.length + 1;
+            appData.transactions.push(tx);
+        }
+
         localStorage.setItem('cached_transactions', JSON.stringify(appData.transactions));
-        
+
         initApp();
-        showToast('Đã lưu Offline', 'Mất kết nối máy chủ! Giao dịch được lưu tạm thời trên trình duyệt.', 'warning');
+        showToast('Đã lưu Offline', 'Mất kết nối máy chủ! Thay đổi được lưu tạm thời trên trình duyệt.', 'warning');
         document.getElementById('modal-add-tx').classList.add('hidden');
     } finally {
+        editingTxId = null;
         spinner.classList.add('hidden');
         saveBtn.disabled = false;
     }
@@ -1844,6 +1865,54 @@ window.confirmResetAllData = async function() {
 };
 
 // Global action to delete a single transaction
+// Mở modal ở chế độ chỉnh sửa và đổ dữ liệu giao dịch cũ vào form
+window.editTransaction = function(id) {
+    const tx = appData.transactions.find(t => t.id === id);
+    if (!tx) {
+        showToast('Không tìm thấy', 'Giao dịch này không còn tồn tại.', 'error');
+        return;
+    }
+
+    editingTxId = id;
+
+    // Đổi tiêu đề & nút sang chế độ Sửa
+    document.getElementById('modal-tx-title').innerHTML = '<i class="fa-solid fa-pen text-primary"></i> Chỉnh sửa Giao dịch';
+    document.getElementById('btn-save-tx-label').innerText = 'Cập nhật giao dịch';
+
+    // Đổ dữ liệu
+    document.getElementById('tx-date').value = tx.date;
+    const groupSelect = document.getElementById('tx-group');
+    const catSelect = document.getElementById('tx-category');
+    groupSelect.value = tx.group;
+
+    // Populate danh mục theo nhóm (giống listener change)
+    catSelect.innerHTML = '<option value="" disabled>Chọn danh mục...</option>';
+    if (categoryMap[tx.group]) {
+        categoryMap[tx.group].forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.innerText = cat;
+            catSelect.appendChild(opt);
+        });
+        catSelect.disabled = false;
+    }
+    // Nếu danh mục cũ không nằm trong danh sách (dữ liệu cũ), thêm vào để không mất
+    if (tx.category && !Array.from(catSelect.options).some(o => o.value === tx.category)) {
+        const opt = document.createElement('option');
+        opt.value = tx.category;
+        opt.innerText = tx.category;
+        catSelect.appendChild(opt);
+        catSelect.disabled = false;
+    }
+    catSelect.value = tx.category;
+
+    document.getElementById('tx-item').value = tx.item;
+    document.getElementById('tx-amount').value = tx.amount;
+    document.getElementById('amount-words').innerText = convertNumberToWords(parseInt(tx.amount) || 0);
+
+    document.getElementById('modal-add-tx').classList.remove('hidden');
+};
+
 window.deleteTransaction = async function(id) {
     const tx = appData.transactions.find(t => t.id === id);
     if (!tx) return;
@@ -2057,6 +2126,43 @@ async function handleCloudApiRequest(url, options) {
             });
         }
         
+        else if (endpoint === '/api/edit') {
+            const body = JSON.parse(options.body);
+            const idx = appData.transactions.findIndex(t => t.id === body.id);
+            if (idx === -1) {
+                return mockResponse({ status: 'error', message: 'Không tìm thấy giao dịch cần sửa.' }, 404);
+            }
+
+            // Giữ id/seq/sheet cũ, cập nhật các trường còn lại
+            const existing = appData.transactions[idx];
+            existing.date = body.date;
+            existing.group = body.group;
+            existing.category = body.category;
+            existing.item = body.item;
+            existing.amount = body.amount;
+
+            // Tính lại partner cho khoản nợ (hoặc xóa nếu không còn liên quan nợ)
+            const isDebtRelated = body.group === 'KHOẢN NỢ' || body.group === 'ĐÒI NỢ'
+                || (body.group === 'KHOẢN THU' && body.category === 'Nợ trả')
+                || (body.group === 'KHOẢN CHI' && (body.category === 'Trả nợ' || body.item.toLowerCase().startsWith('trả nợ') || body.item.toLowerCase().startsWith('trả ')));
+            if (isDebtRelated) {
+                existing.partner = normalizeName(body.item);
+            } else {
+                delete existing.partner;
+            }
+
+            await saveToGistCloud(token, gistId, {
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+
+            return mockResponse({
+                status: 'success',
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+        }
+
         else if (endpoint === '/api/goal') {
             const body = JSON.parse(options.body);
             appData.fi_target = body.fi_target;
