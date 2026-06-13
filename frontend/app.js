@@ -729,7 +729,7 @@ function calculateStats() {
     // Net Worth = tiền mặt thực tế + các khoản phải thu - các khoản nợ + đầu tư
     // Công thức cũ (sai): dùng surplus không tính tiền vay vào → vay tiền làm netWorth giảm sai
     const netWorthAllTime = cashOnHandAllTime + receivablesNetAllTime - debtsNetAllTime + investmentsAllTime;
-    const netSurplusAllTime = cashOnHandAllTime + receivablesNetAllTime - debtsNetAllTime + investmentsAllTime;
+    const netSurplusAllTime = cashOnHandAllTime + receivablesNetAllTime - debtsNetAllTime;
     
     // Filtered surplus
     const surplusFiltered = incomeFiltered - expenseFiltered;
@@ -740,7 +740,15 @@ function calculateStats() {
     document.getElementById('val-total-income').innerText = formatVND(incomeFiltered);
     document.getElementById('val-total-expense').innerText = formatVND(expenseFiltered);
     document.getElementById('val-total-surplus').innerText = formatVND(netSurplusAllTime);
-    
+
+    // Widget "Trạng thái Công nợ" & "Đầu tư" (trước đây bị hardcode 0đ — nay dùng số thực)
+    const sDebt = document.getElementById('summary-debt-val');
+    const sRec = document.getElementById('summary-receivable-val');
+    const sInv = document.getElementById('summary-invest-val');
+    if (sDebt) sDebt.innerText = formatVND(debtsNetAllTime);
+    if (sRec) sRec.innerText = formatVND(receivablesNetAllTime);
+    if (sInv) sInv.innerText = formatVND(investmentsAllTime);
+
     // Savings rate (based on filtered period)
     const savingsRate = incomeFiltered > 0 ? (surplusFiltered / incomeFiltered) * 100 : 0;
     document.getElementById('val-savings-rate').innerText = `Tỷ lệ tích lũy: ${savingsRate.toFixed(1)}%`;
