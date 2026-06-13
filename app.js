@@ -2340,6 +2340,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pullCloudSpinner = document.getElementById('pull-cloud-spinner');
     const pushCloudIcon = document.getElementById('push-cloud-icon');
     const pullCloudIcon = document.getElementById('pull-cloud-icon');
+    const btnCopyLoginLink = document.getElementById('btn-copy-login-link');
 
     // Mở modal cấu hình khi click nút ở Sidebar
     if (btnCloudConfig) {
@@ -2550,6 +2551,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnPullCloud.disabled = false;
                 pullCloudSpinner.classList.add('hidden');
                 pullCloudIcon.classList.remove('hidden');
+            }
+        });
+    }
+
+    // Tạo link đăng nhập nhanh (chứa token + gist_id) để mở trên thiết bị/tab khác
+    if (btnCopyLoginLink) {
+        btnCopyLoginLink.addEventListener('click', async () => {
+            const { token, gistId } = getCloudConfig();
+            if (!token || !gistId) {
+                showToast('Chưa kết nối', 'Bạn cần kết nối Cloud Gist trước khi tạo link.', 'error');
+                return;
+            }
+
+            const baseUrl = window.location.origin + window.location.pathname;
+            const link = `${baseUrl}?token=${encodeURIComponent(token)}&gist_id=${encodeURIComponent(gistId)}`;
+
+            try {
+                await navigator.clipboard.writeText(link);
+                showToast('Đã copy link', 'Link đăng nhập nhanh đã được sao chép. Chỉ dán trên thiết bị cá nhân của bạn!');
+            } catch (err) {
+                // Trình duyệt chặn clipboard (vd: không phải HTTPS) → hiện link để copy tay
+                console.warn('Clipboard bị chặn, hiển thị link để copy thủ công:', err);
+                prompt('Sao chép link đăng nhập nhanh (KHÔNG chia sẻ công khai):', link);
             }
         });
     }
