@@ -179,7 +179,7 @@ function isTransactionInDateRange(txDateStr, range) {
 // Category Option Mappings
 const categoryMap = {
     'KHOẢN THU': ['Buôn bán', 'Thu phí', 'Nhận tiền D', 'Mượn', 'Nợ trả', 'Quỹ', 'Có sẵn / Khác', 'Lương'],
-    'KHOẢN CHI': ['Nhu yếu phẩm', 'Ăn uống', 'Mua sắm', 'Thư giãn', 'Phát sinh', 'Cấp tiền TG', 'Mua đồ d'],
+    'KHOẢN CHI': ['Nhu yếu phẩm', 'Ăn uống', 'Mua sắm', 'Thư giãn', 'Phát sinh', 'Cấp tiền TG', 'Mua đồ d', 'Trả nợ'],
     'KHOẢN NỢ': ['Khoản nợ'],
     'ĐÒI NỢ': ['Đòi nợ'],
     'DOANH THU ĐẦU TƯ': ['Doanh thu đầu tư']
@@ -506,6 +506,9 @@ async function loadAppData() {
         if (data.local_ip === 'GitHub Cloud') {
             updateConnectionBadges('<span class="badge-dot" style="background-color: #38bdf8; box-shadow: 0 0 8px #38bdf8"></span>Đồng bộ Cloud Gist');
             dsInfo.innerHTML = `<i class="fa-solid fa-cloud text-primary"></i> Đang đồng bộ với <strong>GitHub Gist Cloud</strong>`;
+            // Tự động ẩn login overlay nếu đang dùng Cloud Gist
+            const loginOverlay = document.getElementById('login-overlay');
+            if (loginOverlay) loginOverlay.classList.add('hidden');
         } else {
             updateConnectionBadges('<span class="badge-dot" style="background-color: var(--surplus); box-shadow: 0 0 8px var(--surplus)"></span>Đồng bộ Máy chủ');
             if (window.location.hostname === data.local_ip || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
@@ -694,7 +697,7 @@ function calculateStats() {
                 cashFlowAfterStarting -= tx.amount;
             }
             
-            if (tx.item.toLowerCase().startsWith('trả nợ') || tx.item.toLowerCase().startsWith('trả ')) {
+            if (tx.category === 'Trả nợ' || tx.item.toLowerCase().startsWith('trả nợ') || tx.item.toLowerCase().startsWith('trả ')) {
                 paymentsSumAllTime += tx.amount;
             }
         } else if (tx.group === 'KHOẢN NỢ') {
@@ -706,8 +709,8 @@ function calculateStats() {
             }
         } else if (tx.group === 'ĐÒI NỢ') {
             receivablesOriginalAllTime += tx.amount;
-            if (inRange) expenseFiltered += tx.amount;
-            
+            // ĐÒI NỢ là chuyển đổi tài sản (cash → receivable), không phải chi tiêu thực
+
             // Subtract from cash flow if after starting balance
             if (tx.seq > startingCashSeq) {
                 cashFlowAfterStarting -= tx.amount;
@@ -720,13 +723,13 @@ function calculateStats() {
     const debtsNetAllTime = Math.max(debtsOriginalAllTime - paymentsSumAllTime, 0);
     const receivablesNetAllTime = Math.max(receivablesOriginalAllTime - repaymentsSumAllTime, 0);
     
-    // All-time cumulative
-    const surplusAllTime = incomeAllTime - expenseAllTime;
-    const netWorthAllTime = startingAvailableAllTime + surplusAllTime + investmentsAllTime + receivablesNetAllTime - debtsNetAllTime;
-    
     // Cash on Hand: Starting cash + cash flow change since that start
     const cashOnHandAllTime = startingAvailableAllTime + cashFlowAfterStarting;
-    const netSurplusAllTime = cashOnHandAllTime + receivablesNetAllTime - debtsNetAllTime;
+
+    // Net Worth = tiền mặt thực tế + các khoản phải thu - các khoản nợ + đầu tư
+    // Công thức cũ (sai): dùng surplus không tính tiền vay vào → vay tiền làm netWorth giảm sai
+    const netWorthAllTime = cashOnHandAllTime + receivablesNetAllTime - debtsNetAllTime + investmentsAllTime;
+    const netSurplusAllTime = cashOnHandAllTime + receivablesNetAllTime - debtsNetAllTime + investmentsAllTime;
     
     // Filtered surplus
     const surplusFiltered = incomeFiltered - expenseFiltered;
@@ -888,7 +891,7 @@ function renderWidgets() {
         if (!name) {
             if (group === 'KHOẢN NỢ' || group === 'ĐÒI NỢ' || (group === 'KHOẢN THU' && category === 'Nợ trả')) {
                 name = findBestMatch(rawItem, baseNames);
-            } else if (group === 'KHOẢN CHI' && (rawItem.toLowerCase().startsWith('trả nợ') || rawItem.toLowerCase().startsWith('trả '))) {
+            } else if (group === 'KHOẢN CHI' && (category === 'Trả nợ' || rawItem.toLowerCase().startsWith('trả nợ') || rawItem.toLowerCase().startsWith('trả '))) {
                 let cleanName = rawItem.replace(/trả\s+nợ\s+/i, '').replace(/trả\s+/i, '').trim();
                 name = findBestMatch(cleanName, baseNames);
             }
@@ -902,7 +905,7 @@ function renderWidgets() {
                 people[name].receivables.push({ date, amount, rawItem });
             } else if (group === 'KHOẢN THU' && category === 'Nợ trả') {
                 people[name].repayments.push({ date, amount, rawItem });
-            } else if (group === 'KHOẢN CHI' && (rawItem.toLowerCase().startsWith('trả nợ') || rawItem.toLowerCase().startsWith('trả '))) {
+            } else if (group === 'KHOẢN CHI' && (category === 'Trả nợ' || rawItem.toLowerCase().startsWith('trả nợ') || rawItem.toLowerCase().startsWith('trả '))) {
                 people[name].payments.push({ date, amount, rawItem });
             }
         }
@@ -1181,7 +1184,8 @@ function renderCharts() {
         if (range !== 'all' && beforeTxs.length > 0) {
             const debtsNet = Math.max(runningDebts - runningPayments, 0);
             const receivablesNet = Math.max(runningReceivables - runningRepayments, 0);
-            const initialNetWorth = runningStarting + (runningIncome - runningExpense) + runningInvestments + receivablesNet - debtsNet;
+            const cashOnHand = runningStarting + runningIncome - runningExpense + runningDebts - runningReceivables;
+            const initialNetWorth = cashOnHand + receivablesNet - debtsNet + runningInvestments;
             
             chartLabels.push("Khởi đầu");
             netWorthPoints.push(initialNetWorth);
@@ -1215,8 +1219,9 @@ function renderCharts() {
             
             const debtsNet = Math.max(runningDebts - runningPayments, 0);
             const receivablesNet = Math.max(runningReceivables - runningRepayments, 0);
-            const currentNetWorth = runningStarting + (runningIncome - runningExpense) + runningInvestments + receivablesNet - debtsNet;
-            
+            const cashOnHand = runningStarting + runningIncome - runningExpense + runningDebts - runningReceivables;
+            const currentNetWorth = cashOnHand + receivablesNet - debtsNet + runningInvestments;
+
             const dObj = new Date(t.date);
             const dateStr = isNaN(dObj.getTime()) ? t.date : `${String(dObj.getDate()).padStart(2, '0')}/${String(dObj.getMonth() + 1).padStart(2, '0')}`;
             const dateStrFull = isNaN(dObj.getTime()) ? t.date : `${String(dObj.getDate()).padStart(2, '0')}/${String(dObj.getMonth() + 1).padStart(2, '0')}/${dObj.getFullYear()}`;
@@ -1336,8 +1341,9 @@ function renderCharts() {
             
             const debtsNet = Math.max(runningDebts - runningPayments, 0);
             const receivablesNet = Math.max(runningReceivables - runningRepayments, 0);
-            const currentNetWorth = runningStarting + (runningIncome - runningExpense) + runningInvestments + receivablesNet - debtsNet;
-            
+            const cashOnHand = runningStarting + runningIncome - runningExpense + runningDebts - runningReceivables;
+            const currentNetWorth = cashOnHand + receivablesNet - debtsNet + runningInvestments;
+
             let displayLabel = key;
             if (!useSheetGrouping) {
                 const parts = key.split('-');
@@ -2074,6 +2080,13 @@ async function handleCloudApiRequest(url, options) {
                 status: 'success',
                 fi_target: appData.fi_target,
                 transactions: appData.transactions
+            });
+        }
+        
+        else if (endpoint === '/api/login' || endpoint === '/api/setup-auth') {
+            return mockResponse({
+                status: 'success',
+                token: 'mock-cloud-token-' + Date.now()
             });
         }
         
