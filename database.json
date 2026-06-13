@@ -544,6 +544,16 @@
       "seq": 48,
       "sheet": "QUẢN LÝ WEB",
       "partner": "d"
+    },
+    {
+      "date": "2026-06-13",
+      "group": "KHOẢN CHI",
+      "category": "Phát sinh",
+      "item": "Lấy rai",
+      "amount": 80000,
+      "id": "tx_75efd0b7",
+      "seq": 53,
+      "sheet": "QUẢN LÝ WEB"
     }
   ]
 }
