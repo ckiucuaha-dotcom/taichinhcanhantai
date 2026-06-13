@@ -520,7 +520,29 @@ async function loadAppData() {
         
         initApp();
     } catch (err) {
-        console.warn('Could not connect to API server, loading cached database...', err);
+        console.warn('Could not connect to API server, trying static database.json fallback...', err);
+        
+        // Try fetching static database.json from GitHub Pages host
+        try {
+            const staticResponse = await originalFetch('database.json');
+            if (staticResponse.ok) {
+                const staticData = await staticResponse.json();
+                appData.fi_target = staticData.fi_target || 4500000000;
+                appData.transactions = staticData.transactions || [];
+                
+                // Cache locally for backup
+                localStorage.setItem('cached_fi_target', appData.fi_target);
+                localStorage.setItem('cached_transactions', JSON.stringify(appData.transactions));
+                lastTransactionsHash = JSON.stringify(appData.transactions);
+                
+                updateConnectionBadges('<span class="badge-dot" style="background-color: #a855f7; box-shadow: 0 0 8px #a855f7"></span>Đồng bộ GitHub Pages');
+                dsInfo.innerHTML = `<i class="fa-solid fa-globe text-primary" style="color: #a855f7"></i> Đang hiển thị dữ liệu tĩnh từ <strong>GitHub Pages</strong>`;
+                initApp();
+                return;
+            }
+        } catch (staticErr) {
+            console.warn('Could not fetch static database.json:', staticErr);
+        }
         
         // Offline Fallback
         const cachedTarget = localStorage.getItem('cached_fi_target');

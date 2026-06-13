@@ -1,0 +1,528 @@
+{
+  "fi_target": 4500000000.0,
+  "transactions": [
+    {
+      "id": "tx_0_jgvkamrjf",
+      "seq": 1,
+      "date": "2026-06-04",
+      "group": "KHOẢN NỢ",
+      "category": "Khoản nợ",
+      "item": "DCCD",
+      "amount": 12450000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "DCCD"
+    },
+    {
+      "id": "tx_1_yld1mqf0m",
+      "seq": 2,
+      "date": "2026-06-04",
+      "group": "KHOẢN NỢ",
+      "category": "Khoản nợ",
+      "item": "Điện TG",
+      "amount": 12322000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "Điện TG"
+    },
+    {
+      "id": "tx_2_dgw2dqez0",
+      "seq": 3,
+      "date": "2026-06-04",
+      "group": "KHOẢN NỢ",
+      "category": "Khoản nợ",
+      "item": "Huy rau gửi",
+      "amount": 170000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "Huy rau"
+    },
+    {
+      "id": "tx_3_boxbanwhl",
+      "seq": 4,
+      "date": "2026-06-04",
+      "group": "KHOẢN NỢ",
+      "category": "Khoản nợ",
+      "item": "TKTG",
+      "amount": 4490000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "TKTG"
+    },
+    {
+      "id": "tx_4_dfc1l6g7m",
+      "seq": 5,
+      "date": "2026-06-04",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "BT Tú",
+      "amount": 20000000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "BT Tú"
+    },
+    {
+      "id": "tx_5_lbo2evpw4",
+      "seq": 6,
+      "date": "2026-06-04",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Hoàng bếp",
+      "amount": 1000000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "Hoàng bếp"
+    },
+    {
+      "id": "tx_6_1sxoxs1mt",
+      "seq": 7,
+      "date": "2026-06-04",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Chiến bTT",
+      "amount": 850000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "Chiến bTT"
+    },
+    {
+      "id": "tx_7_eddob20lu",
+      "seq": 8,
+      "date": "2026-06-04",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "a Hoà bếp",
+      "amount": 343000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "a Hoà bếp"
+    },
+    {
+      "id": "tx_8_asocc2nbv",
+      "seq": 9,
+      "date": "2026-06-04",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Vợ iu",
+      "amount": 33000000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "Vợ iu"
+    },
+    {
+      "id": "tx_9_jqyiq6m5y",
+      "seq": 10,
+      "date": "2026-06-04",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Năng bếp",
+      "amount": 200000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "Năng bếp"
+    },
+    {
+      "id": "tx_10_pw457kyad",
+      "seq": 11,
+      "date": "2026-06-04",
+      "group": "DOANH THU ĐẦU TƯ",
+      "category": "Doanh thu đầu tư",
+      "item": "FPT",
+      "amount": 64000000,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "id": "tx_11_7n9djp9vl",
+      "seq": 12,
+      "date": "2026-06-04",
+      "group": "DOANH THU ĐẦU TƯ",
+      "category": "Doanh thu đầu tư",
+      "item": "SSB",
+      "amount": 40455000,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "id": "tx_12_0pcjxpqk0",
+      "seq": 13,
+      "date": "2026-06-04",
+      "group": "DOANH THU ĐẦU TƯ",
+      "category": "Doanh thu đầu tư",
+      "item": "Vàng",
+      "amount": 30000000,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "id": "tx_14_fxtaml7po",
+      "seq": 14,
+      "date": "2026-06-04",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Mua đồ d",
+      "amount": 6430000,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "Mua đồ d"
+    },
+    {
+      "id": "tx_8ee6458f",
+      "seq": 15,
+      "date": "2026-06-04",
+      "group": "KHOẢN THU",
+      "category": "Có sẵn / Khác",
+      "item": "Có sẵn",
+      "amount": 24000000,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "id": "tx_b7a1b9e1",
+      "seq": 16,
+      "date": "2026-06-04",
+      "group": "KHOẢN THU",
+      "category": "Nhận tiền D",
+      "item": "Tiểu đoàn",
+      "amount": 50000,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-04",
+      "group": "KHOẢN CHI",
+      "category": "Phát sinh",
+      "item": "Thuốc nhỏ mắt",
+      "amount": 40000,
+      "id": "tx_c7c0cdcb",
+      "seq": 118,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "sheet": "QUẢN LÝ WEB",
+      "date": "2026-06-04",
+      "group": "KHOẢN THU",
+      "category": "Buôn bán",
+      "item": "Sữa rửa mặt",
+      "amount": 30000,
+      "id": "tx_7c0ebdff",
+      "seq": 18
+    },
+    {
+      "sheet": "QUẢN LÝ WEB",
+      "date": "2026-06-04",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Mua quẩy",
+      "amount": 15000,
+      "id": "tx_cf8790fd",
+      "seq": 19
+    },
+    {
+      "sheet": "QUẢN LÝ WEB",
+      "date": "2026-06-04",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Bún",
+      "amount": 35000,
+      "id": "tx_4b716cee",
+      "seq": 20
+    },
+    {
+      "sheet": "QUẢN LÝ WEB",
+      "date": "2026-06-04",
+      "group": "KHOẢN THU",
+      "category": "Nợ trả",
+      "item": "a Hoà trả",
+      "amount": 43000,
+      "id": "tx_3abb618e",
+      "seq": 21,
+      "partner": "a Hoà"
+    },
+    {
+      "date": "2026-06-05",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Bún",
+      "amount": 35000,
+      "id": "tx_fede0ecf",
+      "seq": 22,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-05",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Mua đồ d",
+      "amount": 100000,
+      "partner": "Mua đồ d",
+      "id": "tx_3e452202",
+      "seq": 23,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-05",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Mua bánh mì:",
+      "amount": 40000,
+      "id": "tx_78824933",
+      "seq": 24,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-06",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Mua bánh mì:",
+      "amount": 20000,
+      "id": "tx_76356e32",
+      "seq": 25,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-06",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Mua claude",
+      "amount": 500000,
+      "id": "tx_e1a80d79",
+      "seq": 26,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "sheet": "QUẢN LÝ WEB",
+      "date": "2026-06-06",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Cơm cháy",
+      "amount": 10000,
+      "id": "tx_5086e2f1",
+      "seq": 27
+    },
+    {
+      "date": "2026-06-07",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Mua đồ d",
+      "amount": 70000,
+      "partner": "Mua đồ d",
+      "id": "tx_3be61462",
+      "seq": 28,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-07",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Sữa hạt:",
+      "amount": 10000,
+      "id": "tx_c13029ca",
+      "seq": 30,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-07",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Nước ngọt",
+      "amount": 10000,
+      "id": "tx_067e415b",
+      "seq": 30,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-07",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Cơm cháy",
+      "amount": 35000,
+      "id": "tx_71084dd2",
+      "seq": 31,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-08",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Xăng",
+      "amount": 90000,
+      "id": "tx_05db80c4",
+      "seq": 32,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-08",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Mua đồ d",
+      "amount": 160000,
+      "partner": "Mua đồ d",
+      "id": "tx_b13bfdcd",
+      "seq": 33,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-08",
+      "group": "KHOẢN CHI",
+      "category": "Phát sinh",
+      "item": "Ốp lưng:",
+      "amount": 109000,
+      "id": "tx_0cc9d1db",
+      "seq": 34,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-08",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Mua đồ d",
+      "amount": 240000,
+      "partner": "Mua đồ d",
+      "id": "tx_879c6767",
+      "seq": 35,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-08",
+      "group": "KHOẢN CHI",
+      "category": "Phát sinh",
+      "item": "Ổ khoá",
+      "amount": 90000,
+      "id": "tx_7670e58a",
+      "seq": 36,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-08",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Mua đồ d",
+      "amount": 700000,
+      "partner": "Mua đồ d",
+      "id": "tx_f7bd407f",
+      "seq": 37,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-09",
+      "group": "KHOẢN CHI",
+      "category": "Phát sinh",
+      "item": "Ốp lưng:",
+      "amount": 117000,
+      "id": "tx_07fd7828",
+      "seq": 38,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-09",
+      "group": "KHOẢN CHI",
+      "category": "Cấp tiền TG",
+      "item": "TG dt T5",
+      "amount": 5000000,
+      "id": "tx_0b626ff9",
+      "seq": 39,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-09",
+      "group": "KHOẢN THU",
+      "category": "Nhận tiền D",
+      "item": "dt",
+      "amount": 3000000,
+      "id": "tx_16a81e0c",
+      "seq": 40,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-10",
+      "group": "KHOẢN NỢ",
+      "category": "Khoản nợ",
+      "item": "DCCD",
+      "amount": 400000,
+      "partner": "DCCD",
+      "id": "tx_30ace200",
+      "seq": 41,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-10",
+      "group": "KHOẢN THU",
+      "category": "Nợ trả",
+      "item": "Năng bếp trả",
+      "amount": 200000,
+      "partner": "Năng bếp",
+      "id": "tx_974ff3bf",
+      "seq": 42,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-10",
+      "group": "KHOẢN CHI",
+      "category": "Phát sinh",
+      "item": "Trả nợ a Hoà",
+      "amount": 43000,
+      "id": "tx_8ebe376f",
+      "seq": 43,
+      "sheet": "QUẢN LÝ WEB",
+      "partner": "a Hoà"
+    },
+    {
+      "date": "2026-06-10",
+      "group": "KHOẢN THU",
+      "category": "Nợ trả",
+      "item": "Hoàng bếp trả",
+      "amount": 1000000,
+      "partner": "Hoàng bếp",
+      "id": "tx_c789df02",
+      "seq": 44,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-11",
+      "group": "ĐÒI NỢ",
+      "category": "Đòi nợ",
+      "item": "Mua đồ d",
+      "amount": 250000,
+      "partner": "Mua đồ d",
+      "id": "tx_90bd3714",
+      "seq": 45,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-11",
+      "group": "KHOẢN CHI",
+      "category": "Phát sinh",
+      "item": "Xà bông a Long",
+      "amount": 600000,
+      "id": "tx_9547e2f1",
+      "seq": 46,
+      "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "sheet": "QUẢN LÝ WEB",
+      "date": "2026-06-11",
+      "group": "KHOẢN CHI",
+      "category": "Phát sinh",
+      "item": "xà bông a Long",
+      "amount": 2000000,
+      "id": "tx_9276da0b",
+      "seq": 47
+    },
+    {
+      "sheet": "QUẢN LÝ WEB",
+      "date": "2026-06-13",
+      "group": "KHOẢN THU",
+      "category": "Nợ trả",
+      "item": "Mua đồ d",
+      "amount": 2100000,
+      "id": "tx_b83bbca2",
+      "seq": 48,
+      "partner": "Mua đồ d"
+    },
+    {
+      "sheet": "QUẢN LÝ WEB",
+      "date": "2026-06-13",
+      "group": "KHOẢN CHI",
+      "category": "Mua sắm",
+      "item": "Claude",
+      "amount": 500000,
+      "id": "tx_22386bad",
+      "seq": 49
+    },
+    {
+      "date": "2026-06-13",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "[TEST BOT WEB] Kiểm tra đồng bộ web",
+      "amount": 22000,
+      "id": "tx_b66e2ce0",
+      "seq": 50,
+      "sheet": "QUẢN LÝ WEB"
+    }
+  ]
+}
