@@ -1648,9 +1648,18 @@ async function handleFormSubmit(e) {
             throw new Error(resData.message || 'Server error occurred');
         }
     } catch (err) {
-        console.warn('Backend sync failed, storing transaction locally in browser cache...', err);
+        console.error('Lưu giao dịch thất bại:', err);
 
-        // Offline Save Fallback
+        // Ở chế độ Cloud Gist: KHÔNG lưu cục bộ giả (tránh lệch dữ liệu) — báo lỗi thật
+        if (isCloudMode()) {
+            editingTxId = null;
+            spinner.classList.add('hidden');
+            saveBtn.disabled = false;
+            showToast('Không lưu được lên Cloud', err.message || 'Ghi lên GitHub Gist thất bại. Thay đổi CHƯA được lưu.', 'error');
+            return;
+        }
+
+        // Chế độ máy chủ local: Offline Save Fallback
         if (isEditing) {
             const idx = appData.transactions.findIndex(t => t.id === editingTxId);
             if (idx !== -1) {
@@ -1940,10 +1949,16 @@ window.deleteTransaction = async function(id) {
             throw new Error(resData.message);
         }
     } catch (err) {
-        console.warn('Backend sync failed, deleting transaction locally...', err);
+        console.error('Xóa giao dịch thất bại:', err);
+        // Ở chế độ Cloud Gist: KHÔNG xóa cục bộ (tránh lệch dữ liệu) — báo lỗi thật để người dùng xử lý
+        if (isCloudMode()) {
+            showToast('Không xóa được trên Cloud', err.message || 'Ghi lên GitHub Gist thất bại. Giao dịch CHƯA bị xóa.', 'error');
+            return;
+        }
+        // Chế độ máy chủ local: lưu xóa tạm trên trình duyệt
         appData.transactions = appData.transactions.filter(t => t.id !== id);
         localStorage.setItem('cached_transactions', JSON.stringify(appData.transactions));
-        
+
         initApp();
         showToast('Đã xóa Offline', 'Giao dịch bị xóa tạm thời trên trình duyệt này!', 'warning');
     }
@@ -2262,7 +2277,15 @@ async function saveToGistCloud(token, gistId, payload) {
         })
     });
     if (!res.ok) {
-        throw new Error(`Cập nhật Gist thất bại: ${res.statusText}`);
+        let detail = res.statusText;
+        if (res.status === 403 || res.status === 404) {
+            detail = `Token GitHub không có quyền GHI vào Gist (HTTP ${res.status}). Hãy tạo lại token với quyền Gist = Read and write.`;
+        } else if (res.status === 401) {
+            detail = `Token GitHub đã hết hạn hoặc không hợp lệ (HTTP ${res.status}).`;
+        } else {
+            detail = `Cập nhật Gist thất bại (HTTP ${res.status}): ${res.statusText}`;
+        }
+        throw new Error(detail);
     }
     // Đồng bộ tức thì với local storage
     localStorage.setItem('cached_fi_target', payload.fi_target);
