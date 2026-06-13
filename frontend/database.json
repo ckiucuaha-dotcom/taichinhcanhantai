@@ -523,6 +523,16 @@
       "id": "tx_b66e2ce0",
       "seq": 50,
       "sheet": "QUẢN LÝ WEB"
+    },
+    {
+      "date": "2026-06-13",
+      "group": "KHOẢN CHI",
+      "category": "Ăn uống",
+      "item": "Quẩy nước",
+      "amount": 25000,
+      "id": "tx_0f9b40a8",
+      "seq": 51,
+      "sheet": "QUẢN LÝ WEB"
     }
   ]
 }
