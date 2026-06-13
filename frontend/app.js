@@ -1168,7 +1168,7 @@ function renderCharts() {
                 }
             } else if (t.group === 'KHOẢN CHI') {
                 runningExpense += t.amount;
-                if (t.item.toLowerCase().startsWith('trả nợ') || t.item.toLowerCase().startsWith('trả ')) {
+                if (t.category === 'Trả nợ' || t.item.toLowerCase().startsWith('trả nợ') || t.item.toLowerCase().startsWith('trả ')) {
                     runningPayments += t.amount;
                 }
             } else if (t.group === 'KHOẢN NỢ') {
@@ -1206,7 +1206,7 @@ function renderCharts() {
                 }
             } else if (t.group === 'KHOẢN CHI') {
                 runningExpense += t.amount;
-                if (t.item.toLowerCase().startsWith('trả nợ') || t.item.toLowerCase().startsWith('trả ')) {
+                if (t.category === 'Trả nợ' || t.item.toLowerCase().startsWith('trả nợ') || t.item.toLowerCase().startsWith('trả ')) {
                     runningPayments += t.amount;
                 }
             } else if (t.group === 'KHOẢN NỢ') {
@@ -1655,7 +1655,7 @@ window.settleDebt = async function(name, amount) {
     const tx = {
         date: new Date().toISOString().split('T')[0],
         group: 'KHOẢN CHI',
-        category: 'Phát sinh',
+        category: 'Trả nợ',
         item: `Trả nợ ${name}`,
         amount: amount
     };
@@ -1962,7 +1962,7 @@ async function handleCloudApiRequest(url, options) {
             
             const res = await originalFetch(`https://api.github.com/gists/${gistId}`, {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `token ${token}`,
                     'Accept': 'application/vnd.github+json'
                 }
             });
@@ -2002,7 +2002,15 @@ async function handleCloudApiRequest(url, options) {
             body.id = 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             body.sheet = 'QUẢN LÝ WEB';
             body.row = appData.transactions.length + 1;
-            
+
+            // Normalize partner (mirror server logic) để tab Nợ match đúng
+            const isDebtRelated = body.group === 'KHOẢN NỢ' || body.group === 'ĐÒI NỢ'
+                || (body.group === 'KHOẢN THU' && body.category === 'Nợ trả')
+                || (body.group === 'KHOẢN CHI' && (body.category === 'Trả nợ' || body.item.toLowerCase().startsWith('trả nợ') || body.item.toLowerCase().startsWith('trả ')));
+            if (isDebtRelated) {
+                body.partner = normalizeName(body.item);
+            }
+
             // Đẩy vào danh sách
             appData.transactions.push(body);
             
@@ -2103,7 +2111,7 @@ async function saveToGistCloud(token, gistId, payload) {
     const res = await originalFetch(`https://api.github.com/gists/${gistId}`, {
         method: 'PATCH',
         headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `token ${token}`,
             'Accept': 'application/vnd.github+json',
             'Content-Type': 'application/json'
         },
@@ -2129,7 +2137,7 @@ async function createNewGistCloud(token, payload) {
     const res = await originalFetch(`https://api.github.com/gists`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `token ${token}`,
             'Accept': 'application/vnd.github+json',
             'Content-Type': 'application/json'
         },
@@ -2274,7 +2282,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Xác minh kết nối bằng cách fetch thử Gist
                 const res = await originalFetch(`https://api.github.com/gists/${gistId}`, {
                     headers: {
-                        'Authorization': `Bearer ${token}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github+json'
                     }
                 });
@@ -2351,7 +2359,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { token, gistId } = getCloudConfig();
                 const res = await originalFetch(`https://api.github.com/gists/${gistId}`, {
                     headers: {
-                        'Authorization': `Bearer ${token}`,
+                        'Authorization': `token ${token}`,
                         'Accept': 'application/vnd.github+json'
                     }
                 });
