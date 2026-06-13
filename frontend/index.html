@@ -453,7 +453,7 @@
     <div class="modal-backdrop hidden" id="modal-add-tx">
         <div class="modal-container glass-card">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-file-invoice-dollar text-primary"></i> Ghi nhận Giao dịch Mới</h3>
+                <h3 id="modal-tx-title"><i class="fa-solid fa-file-invoice-dollar text-primary"></i> Ghi nhận Giao dịch Mới</h3>
                 <button class="btn-close" id="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
@@ -507,7 +507,7 @@
                     <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Hủy bỏ</button>
                     <button type="submit" class="btn btn-primary" id="btn-save-tx">
                         <span id="save-spinner" class="spinner hidden"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
-                        <span>Lưu giao dịch</span>
+                        <span id="btn-save-tx-label">Lưu giao dịch</span>
                     </button>
                 </div>
             </form>
