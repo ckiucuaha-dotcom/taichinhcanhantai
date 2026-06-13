@@ -1,0 +1,17 @@
+{
+  "short_name": "ZenFinance",
+  "name": "ZenFinance - Tối Ưu Hóa Tài Chính Cá Nhân",
+  "icons": [
+    {
+      "src": "favicon.png?v=1.0.7",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "display": "standalone",
+  "orientation": "portrait"
+}
