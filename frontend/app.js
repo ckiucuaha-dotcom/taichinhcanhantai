@@ -22,6 +22,31 @@ let expenseDonutChart = null;
 
 // Real-time synchronization state
 let lastTransactionsHash = '';
+let lastCloudFetchTime = 0;
+
+// Ghi đè window.fetch gốc để intercept các cuộc gọi API khi dùng Cloud Gist
+const originalFetch = window.fetch;
+window.fetch = async function(url, options) {
+    if (typeof url === 'string' && (url.includes('/api/') || url.startsWith('/api/'))) {
+        const isCloud = !!(localStorage.getItem('github_token') && localStorage.getItem('github_gist_id'));
+        if (isCloud) {
+            return handleCloudApiRequest(url, options);
+        }
+    }
+    return originalFetch.apply(this, arguments);
+};
+
+function isCloudMode() {
+    return !!(localStorage.getItem('github_token') && localStorage.getItem('github_gist_id'));
+}
+
+function getCloudConfig() {
+    return {
+        token: localStorage.getItem('github_token'),
+        gistId: localStorage.getItem('github_gist_id')
+    };
+}
+
 
 // Auth utility functions
 function getAuthHeaders() {
@@ -459,11 +484,16 @@ async function loadAppData() {
         // Save initial transaction hash to detect server updates
         lastTransactionsHash = JSON.stringify(appData.transactions);
         
-        updateConnectionBadges('<span class="badge-dot" style="background-color: var(--surplus); box-shadow: 0 0 8px var(--surplus)"></span>Đồng bộ Máy chủ');
-        if (window.location.hostname === data.local_ip || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
-            dsInfo.innerHTML = `<i class="fa-solid fa-circle-check text-surplus"></i> Đang kết nối trực tiếp với Máy chủ Wi-Fi`;
+        if (data.local_ip === 'GitHub Cloud') {
+            updateConnectionBadges('<span class="badge-dot" style="background-color: #38bdf8; box-shadow: 0 0 8px #38bdf8"></span>Đồng bộ Cloud Gist');
+            dsInfo.innerHTML = `<i class="fa-solid fa-cloud text-primary"></i> Đang đồng bộ với <strong>GitHub Gist Cloud</strong>`;
         } else {
-            dsInfo.innerHTML = `<i class="fa-solid fa-circle-check text-surplus"></i> Máy chủ Wi-Fi: Truy cập trên điện thoại <strong>http://${data.local_ip}:8000/frontend/index.html</strong>`;
+            updateConnectionBadges('<span class="badge-dot" style="background-color: var(--surplus); box-shadow: 0 0 8px var(--surplus)"></span>Đồng bộ Máy chủ');
+            if (window.location.hostname === data.local_ip || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+                dsInfo.innerHTML = `<i class="fa-solid fa-circle-check text-surplus"></i> Đang kết nối trực tiếp với Máy chủ Wi-Fi`;
+            } else {
+                dsInfo.innerHTML = `<i class="fa-solid fa-circle-check text-surplus"></i> Máy chủ Wi-Fi: Truy cập trên điện thoại <strong>http://${data.local_ip}:8000/frontend/index.html</strong>`;
+            }
         }
         
         initApp();
@@ -478,7 +508,11 @@ async function loadAppData() {
             appData.fi_target = parseFloat(cachedTarget);
             appData.transactions = JSON.parse(cachedTxs);
             updateConnectionBadges('<span class="badge-dot" style="background-color: var(--warn); box-shadow: 0 0 8px var(--warn)"></span>Chạy Offline (Cache)');
-            dsInfo.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-warn"></i> Mất kết nối Máy chủ: Đang sử dụng dữ liệu cục bộ trình duyệt';
+            if (isCloudMode()) {
+                dsInfo.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-warn"></i> Mất kết nối Cloud: Đang sử dụng dữ liệu cục bộ trình duyệt';
+            } else {
+                dsInfo.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-warn"></i> Mất kết nối Máy chủ: Đang sử dụng dữ liệu cục bộ trình duyệt';
+            }
             initApp();
         } else {
             appData.fi_target = 4500000000;
@@ -1869,6 +1903,455 @@ window.importDataJSON = async function(event) {
             showToast('Lỗi', 'Không thể đọc tệp sao lưu. Vui lòng kiểm tra lại!', 'error');
             event.target.value = '';
         }
-    };
     reader.readAsText(file);
 };
+
+
+/* ==========================================================================
+   GitHub Gist Cloud Sync Integration (Phương án A)
+   ========================================================================== */
+
+// Handle cloud API requests internally when in Cloud Mode
+async function handleCloudApiRequest(url, options) {
+    const { token, gistId } = getCloudConfig();
+    const endpoint = url.replace(apiBase, '').split('?')[0];
+    
+    const mockResponse = (data, status = 200) => {
+        return new Response(JSON.stringify(data), {
+            status: status,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    };
+
+    try {
+        if (endpoint === '/api/data') {
+            const now = Date.now();
+            // Caching: tránh spam API GitHub. Nếu fetch chưa quá 10s và đã có data, trả về local cache luôn.
+            if (now - lastCloudFetchTime < 10000 && appData.transactions && appData.transactions.length > 0) {
+                return mockResponse({
+                    fi_target: appData.fi_target,
+                    transactions: appData.transactions,
+                    local_ip: 'GitHub Cloud'
+                });
+            }
+            
+            const res = await originalFetch(`https://api.github.com/gists/${gistId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github+json'
+                }
+            });
+            
+            if (!res.ok) {
+                if (res.status === 401 || res.status === 403) {
+                    return mockResponse({ status: 'error', message: 'GitHub Token không hợp lệ hoặc đã hết hạn.' }, 401);
+                }
+                throw new Error(`GitHub Gist API error: ${res.statusText}`);
+            }
+            
+            const gist = await res.json();
+            const file = gist.files['database.json'];
+            if (!file || !file.content) {
+                throw new Error('Không tìm thấy tệp database.json trong Gist');
+            }
+            
+            const data = JSON.parse(file.content);
+            appData.fi_target = data.fi_target || 4500000000;
+            appData.transactions = data.transactions || [];
+            lastCloudFetchTime = now;
+            
+            // Cập nhật local storage cache
+            localStorage.setItem('cached_fi_target', appData.fi_target);
+            localStorage.setItem('cached_transactions', JSON.stringify(appData.transactions));
+            
+            return mockResponse({
+                fi_target: appData.fi_target,
+                transactions: appData.transactions,
+                local_ip: 'GitHub Cloud'
+            });
+        }
+        
+        else if (endpoint === '/api/transaction') {
+            const body = JSON.parse(options.body);
+            // Tạo ID và các thuộc tính đồng bộ
+            body.id = 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            body.sheet = 'QUẢN LÝ WEB';
+            body.row = appData.transactions.length + 1;
+            
+            // Đẩy vào danh sách
+            appData.transactions.push(body);
+            
+            await saveToGistCloud(token, gistId, {
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+            
+            return mockResponse({
+                status: 'success',
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+        }
+        
+        else if (endpoint === '/api/goal') {
+            const body = JSON.parse(options.body);
+            appData.fi_target = body.fi_target;
+            
+            await saveToGistCloud(token, gistId, {
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+            
+            return mockResponse({
+                status: 'success',
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+        }
+        
+        else if (endpoint === '/api/delete') {
+            const body = JSON.parse(options.body);
+            appData.transactions = appData.transactions.filter(t => t.id !== body.id);
+            
+            await saveToGistCloud(token, gistId, {
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+            
+            return mockResponse({
+                status: 'success',
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+        }
+        
+        else if (endpoint === '/api/reset') {
+            appData.transactions = [];
+            appData.fi_target = 4500000000;
+            
+            await saveToGistCloud(token, gistId, {
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+            
+            return mockResponse({
+                status: 'success',
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+        }
+        
+        else if (endpoint === '/api/sync') {
+            const body = JSON.parse(options.body);
+            appData.fi_target = body.fi_target;
+            appData.transactions = body.transactions;
+            
+            await saveToGistCloud(token, gistId, {
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+            
+            return mockResponse({
+                status: 'success',
+                fi_target: appData.fi_target,
+                transactions: appData.transactions
+            });
+        }
+        
+        return mockResponse({ status: 'error', message: 'Endpoint không hỗ trợ trong chế độ Cloud.' }, 404);
+        
+    } catch (err) {
+        console.error("Lỗi xử lý Cloud API:", err);
+        return mockResponse({ status: 'error', message: err.message }, 500);
+    }
+}
+
+// Ghi đè file database.json trên Gist
+async function saveToGistCloud(token, gistId, payload) {
+    const res = await originalFetch(`https://api.github.com/gists/${gistId}`, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            description: "ZenFinance Cloud Database",
+            files: {
+                "database.json": {
+                    "content": JSON.stringify(payload, null, 2)
+                }
+            }
+        })
+    });
+    if (!res.ok) {
+        throw new Error(`Cập nhật Gist thất bại: ${res.statusText}`);
+    }
+    // Đồng bộ tức thì với local storage
+    localStorage.setItem('cached_fi_target', payload.fi_target);
+    localStorage.setItem('cached_transactions', JSON.stringify(payload.transactions));
+}
+
+// Khởi tạo một Gist mới tinh trên GitHub
+async function createNewGistCloud(token, payload) {
+    const res = await originalFetch(`https://api.github.com/gists`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            description: "ZenFinance Cloud Database (Secret)",
+            public: false,
+            files: {
+                "database.json": {
+                    "content": JSON.stringify(payload, null, 2)
+                }
+            }
+        })
+    });
+    if (!res.ok) {
+        throw new Error(`Tạo Gist mới thất bại: ${res.statusText}`);
+    }
+    const gist = await res.json();
+    return gist.id;
+}
+
+// Cloud Setup UI & Events
+document.addEventListener('DOMContentLoaded', () => {
+    // Buttons và Modal elements
+    const btnCloudConfig = document.getElementById('btn-cloud-config');
+    const modalCloudConfig = document.getElementById('modal-cloud-config');
+    const btnCloseCloudModal = document.getElementById('btn-close-cloud-modal');
+    const btnCancelCloudModal = document.getElementById('btn-cancel-cloud-modal');
+    const formCloudConfig = document.getElementById('form-cloud-config');
+    const inputGithubToken = document.getElementById('cloud-github-token');
+    const inputGistId = document.getElementById('cloud-gist-id');
+    
+    const btnCreateGist = document.getElementById('btn-create-gist');
+    const createGistSpinner = document.getElementById('create-gist-spinner');
+    const btnDisconnectCloud = document.getElementById('btn-disconnect-cloud');
+    
+    const cloudSyncActions = document.getElementById('cloud-sync-actions');
+    const btnPushCloud = document.getElementById('btn-push-cloud');
+    const btnPullCloud = document.getElementById('btn-pull-cloud');
+    const pushCloudSpinner = document.getElementById('push-cloud-spinner');
+    const pullCloudSpinner = document.getElementById('pull-cloud-spinner');
+    const pushCloudIcon = document.getElementById('push-cloud-icon');
+    const pullCloudIcon = document.getElementById('pull-cloud-icon');
+
+    // Mở modal cấu hình khi click nút ở Sidebar
+    if (btnCloudConfig) {
+        btnCloudConfig.addEventListener('click', openCloudModal);
+    }
+
+    // Cho phép mở modal khi click trực tiếp vào connection badge (ở Sidebar hoặc Header)
+    document.querySelectorAll('.connection-badge').forEach(badge => {
+        badge.style.cursor = 'pointer';
+        badge.addEventListener('click', openCloudModal);
+    });
+
+    function openCloudModal() {
+        // Điền dữ liệu cấu hình cũ nếu có
+        inputGithubToken.value = localStorage.getItem('github_token') || '';
+        inputGistId.value = localStorage.getItem('github_gist_id') || '';
+        
+        if (isCloudMode()) {
+            cloudSyncActions.classList.remove('hidden');
+            btnDisconnectCloud.classList.remove('hidden');
+        } else {
+            cloudSyncActions.classList.add('hidden');
+            btnDisconnectCloud.classList.add('hidden');
+        }
+        
+        modalCloudConfig.classList.remove('hidden');
+    }
+
+    // Đóng Modal
+    const closeCloudModal = () => {
+        modalCloudConfig.classList.add('hidden');
+    };
+    
+    if (btnCloseCloudModal) btnCloseCloudModal.addEventListener('click', closeCloudModal);
+    if (btnCancelCloudModal) btnCancelCloudModal.addEventListener('click', closeCloudModal);
+
+    // Xử lý tạo Gist mới tự động
+    if (btnCreateGist) {
+        btnCreateGist.addEventListener('click', async () => {
+            const token = inputGithubToken.value.trim();
+            if (!token) {
+                showToast('Lỗi cấu hình', 'Vui lòng nhập GitHub Personal Access Token trước!', 'error');
+                return;
+            }
+            
+            btnCreateGist.disabled = true;
+            createGistSpinner.classList.remove('hidden');
+            
+            try {
+                // Sử dụng dữ liệu hiện có trong app hoặc tạo dữ liệu trống
+                const payload = {
+                    fi_target: appData.fi_target || 4500000000,
+                    transactions: appData.transactions || []
+                };
+                
+                const newGistId = await createNewGistCloud(token, payload);
+                inputGistId.value = newGistId;
+                showToast('Thành công', 'Đã tạo tệp Gist riêng tư mới trên GitHub của bạn!');
+            } catch (err) {
+                console.error(err);
+                showToast('Lỗi tạo Gist', `Không thể tạo Gist: ${err.message}`, 'error');
+            } finally {
+                btnCreateGist.disabled = false;
+                createGistSpinner.classList.add('hidden');
+            }
+        });
+    }
+
+    // Xử lý ngắt kết nối Cloud Gist
+    if (btnDisconnectCloud) {
+        btnDisconnectCloud.addEventListener('click', () => {
+            if (confirm("Bạn có chắc chắn muốn ngắt kết nối Cloud Gist? Ứng dụng sẽ quay lại đồng bộ với máy chủ Local.")) {
+                localStorage.removeItem('github_token');
+                localStorage.removeItem('github_gist_id');
+                showToast('Đã ngắt kết nối', 'Ứng dụng đã chuyển về chế độ Local Server.', 'warning');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        });
+    }
+
+    // Xử lý Lưu cấu hình
+    if (formCloudConfig) {
+        formCloudConfig.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = inputGithubToken.value.trim();
+            const gistId = inputGistId.value.trim();
+            
+            if (!token || !gistId) {
+                showToast('Thiếu thông tin', 'Vui lòng nhập đầy đủ Token và Gist ID.', 'error');
+                return;
+            }
+
+            const saveBtn = document.getElementById('btn-save-cloud');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i>Đang kết nối...';
+
+            try {
+                // Xác minh kết nối bằng cách fetch thử Gist
+                const res = await originalFetch(`https://api.github.com/gists/${gistId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github+json'
+                    }
+                });
+                
+                if (!res.ok) throw new Error(`Không thể kết nối Gist: ${res.statusText}`);
+                
+                const gist = await res.json();
+                const file = gist.files['database.json'];
+                if (!file) throw new Error('Gist không chứa file database.json');
+
+                // Lưu vào local storage
+                localStorage.setItem('github_token', token);
+                localStorage.setItem('github_gist_id', gistId);
+                
+                showToast('Cấu hình thành công', 'ZenFinance đã kết nối với GitHub Cloud Database!');
+                closeCloudModal();
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+                
+            } catch (err) {
+                console.error(err);
+                showToast('Lỗi kết nối', `Xác minh thất bại: ${err.message}`, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = 'Lưu cấu hình';
+            }
+        });
+    }
+
+    // Đẩy dữ liệu Local lên Cloud
+    if (btnPushCloud) {
+        btnPushCloud.addEventListener('click', async () => {
+            if (!confirm("Hành động này sẽ tải toàn bộ dữ liệu hiện tại của trình duyệt này đè lên Cloud Gist. Bạn có muốn tiếp tục không?")) {
+                return;
+            }
+            
+            btnPushCloud.disabled = true;
+            pushCloudSpinner.classList.remove('hidden');
+            pushCloudIcon.classList.add('hidden');
+            
+            try {
+                const { token, gistId } = getCloudConfig();
+                const payload = {
+                    fi_target: appData.fi_target,
+                    transactions: appData.transactions
+                };
+                await saveToGistCloud(token, gistId, payload);
+                showToast('Đồng bộ', 'Đã tải dữ liệu thành công lên Cloud!');
+            } catch (err) {
+                console.error(err);
+                showToast('Lỗi đồng bộ', `Không thể đẩy dữ liệu lên: ${err.message}`, 'error');
+            } finally {
+                btnPushCloud.disabled = false;
+                pushCloudSpinner.classList.add('hidden');
+                pushCloudIcon.classList.remove('hidden');
+            }
+        });
+    }
+
+    // Tải dữ liệu từ Cloud về Local
+    if (btnPullCloud) {
+        btnPullCloud.addEventListener('click', async () => {
+            if (!confirm("Hành động này sẽ tải toàn bộ dữ liệu từ Cloud Gist đè lên bộ nhớ trình duyệt hiện tại. Bạn có muốn tiếp tục không?")) {
+                return;
+            }
+            
+            btnPullCloud.disabled = true;
+            pullCloudSpinner.classList.remove('hidden');
+            pullCloudIcon.classList.add('hidden');
+            
+            try {
+                const { token, gistId } = getCloudConfig();
+                const res = await originalFetch(`https://api.github.com/gists/${gistId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github+json'
+                    }
+                });
+                
+                if (!res.ok) throw new Error(`GitHub error: ${res.statusText}`);
+                
+                const gist = await res.json();
+                const file = gist.files['database.json'];
+                if (!file || !file.content) throw new Error('Không có file database.json trên Gist');
+                
+                const data = JSON.parse(file.content);
+                appData.fi_target = data.fi_target || 4500000000;
+                appData.transactions = data.transactions || [];
+                
+                localStorage.setItem('cached_fi_target', appData.fi_target);
+                localStorage.setItem('cached_transactions', JSON.stringify(appData.transactions));
+                
+                showToast('Đồng bộ', 'Đã tải dữ liệu Cloud về trình duyệt thành công!');
+                closeCloudModal();
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } catch (err) {
+                console.error(err);
+                showToast('Lỗi đồng bộ', `Không thể tải dữ liệu xuống: ${err.message}`, 'error');
+            } finally {
+                btnPullCloud.disabled = false;
+                pullCloudSpinner.classList.add('hidden');
+                pullCloudIcon.classList.remove('hidden');
+            }
+        });
+    }
+});
+
