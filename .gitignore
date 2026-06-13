@@ -1,0 +1,29 @@
+# Python virtual environment
+venv/
+.venv/
+ENV/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# User private data (Dữ liệu tài chính cá nhân - Cực kỳ quan trọng, không commit lên GitHub công khai!)
+database.json
+database_backup_before_clean.json
+
+# Local config & SSH Tunnel outputs
+ZenFinance_Mobile_Link.txt
+
+# macOS system files
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE / Editor configurations
+.vscode/
+.idea/
+*.swp
+*.swo
