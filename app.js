@@ -47,6 +47,25 @@ function getCloudConfig() {
     };
 }
 
+// Tự động nhận diện cấu hình đồng bộ qua URL (Query parameters) để thiết lập 1-click
+(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+    const urlGistId = urlParams.get('gist_id');
+    
+    if (urlToken && urlGistId) {
+        localStorage.setItem('github_token', urlToken.trim());
+        localStorage.setItem('github_gist_id', urlGistId.trim());
+        
+        // Xóa query parameters trên thanh địa chỉ ngay lập tức để bảo mật
+        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        
+        // Tự động reload để áp dụng cấu hình đám mây
+        window.location.reload();
+    }
+})();
+
 
 // Auth utility functions
 function getAuthHeaders() {
