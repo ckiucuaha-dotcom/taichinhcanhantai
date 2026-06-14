@@ -2060,6 +2060,29 @@ window.importDataJSON = async function(event) {
    GitHub Gist Cloud Sync Integration (Phương án A)
    ========================================================================== */
 
+// Đọc dữ liệu MỚI NHẤT từ Gist (read-before-write) để tránh ghi đè mất dữ liệu đa máy
+async function getLatestCloudData(token, gistId) {
+    const res = await originalFetch(`https://api.github.com/gists/${gistId}`, {
+        headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github+json'
+        }
+    });
+    if (!res.ok) {
+        if (res.status === 401) throw new Error('Token GitHub đã hết hạn hoặc không hợp lệ (HTTP 401).');
+        if (res.status === 403 || res.status === 404) throw new Error(`Token GitHub không có quyền đọc Gist (HTTP ${res.status}).`);
+        throw new Error(`Không đọc được Gist (HTTP ${res.status}).`);
+    }
+    const gist = await res.json();
+    const file = gist.files['database.json'];
+    if (!file || !file.content) throw new Error('Gist không có tệp database.json.');
+    const data = JSON.parse(file.content);
+    return {
+        fi_target: data.fi_target || 4500000000,
+        transactions: data.transactions || []
+    };
+}
+
 // Handle cloud API requests internally when in Cloud Mode
 async function handleCloudApiRequest(url, options) {
     const { token, gistId } = getCloudConfig();
@@ -2122,10 +2145,13 @@ async function handleCloudApiRequest(url, options) {
         
         else if (endpoint === '/api/transaction') {
             const body = JSON.parse(options.body);
+            // Read-before-write: lấy bản mới nhất từ Gist rồi mới thêm
+            const latest = await getLatestCloudData(token, gistId);
+
             // Tạo ID và các thuộc tính đồng bộ
             body.id = 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             body.sheet = 'QUẢN LÝ WEB';
-            body.row = appData.transactions.length + 1;
+            body.row = latest.transactions.length + 1;
 
             // Normalize partner (mirror server logic) để tab Nợ match đúng
             const isDebtRelated = body.group === 'KHOẢN NỢ' || body.group === 'ĐÒI NỢ'
@@ -2135,14 +2161,17 @@ async function handleCloudApiRequest(url, options) {
                 body.partner = normalizeName(body.item);
             }
 
-            // Đẩy vào danh sách
-            appData.transactions.push(body);
-            
+            latest.transactions.push(body);
+
             await saveToGistCloud(token, gistId, {
-                fi_target: appData.fi_target,
-                transactions: appData.transactions
+                fi_target: latest.fi_target,
+                transactions: latest.transactions
             });
-            
+
+            appData.fi_target = latest.fi_target;
+            appData.transactions = latest.transactions;
+            lastCloudFetchTime = Date.now();
+
             return mockResponse({
                 status: 'success',
                 fi_target: appData.fi_target,
@@ -2152,13 +2181,14 @@ async function handleCloudApiRequest(url, options) {
         
         else if (endpoint === '/api/edit') {
             const body = JSON.parse(options.body);
-            const idx = appData.transactions.findIndex(t => t.id === body.id);
-            if (idx === -1) {
-                return mockResponse({ status: 'error', message: 'Không tìm thấy giao dịch cần sửa.' }, 404);
+            // Read-before-write: sửa trên bản mới nhất từ Gist
+            const latest = await getLatestCloudData(token, gistId);
+            const existing = latest.transactions.find(t => t.id === body.id);
+            if (!existing) {
+                return mockResponse({ status: 'error', message: 'Không tìm thấy giao dịch cần sửa (có thể đã bị xóa ở máy khác).' }, 404);
             }
 
             // Giữ id/seq/sheet cũ, cập nhật các trường còn lại
-            const existing = appData.transactions[idx];
             existing.date = body.date;
             existing.group = body.group;
             existing.category = body.category;
@@ -2176,9 +2206,13 @@ async function handleCloudApiRequest(url, options) {
             }
 
             await saveToGistCloud(token, gistId, {
-                fi_target: appData.fi_target,
-                transactions: appData.transactions
+                fi_target: latest.fi_target,
+                transactions: latest.transactions
             });
+
+            appData.fi_target = latest.fi_target;
+            appData.transactions = latest.transactions;
+            lastCloudFetchTime = Date.now();
 
             return mockResponse({
                 status: 'success',
@@ -2189,13 +2223,19 @@ async function handleCloudApiRequest(url, options) {
 
         else if (endpoint === '/api/goal') {
             const body = JSON.parse(options.body);
-            appData.fi_target = body.fi_target;
-            
+            // Read-before-write: đổi mục tiêu nhưng giữ nguyên transactions mới nhất từ Gist
+            const latest = await getLatestCloudData(token, gistId);
+            latest.fi_target = body.fi_target;
+
             await saveToGistCloud(token, gistId, {
-                fi_target: appData.fi_target,
-                transactions: appData.transactions
+                fi_target: latest.fi_target,
+                transactions: latest.transactions
             });
-            
+
+            appData.fi_target = latest.fi_target;
+            appData.transactions = latest.transactions;
+            lastCloudFetchTime = Date.now();
+
             return mockResponse({
                 status: 'success',
                 fi_target: appData.fi_target,
@@ -2205,13 +2245,19 @@ async function handleCloudApiRequest(url, options) {
         
         else if (endpoint === '/api/delete') {
             const body = JSON.parse(options.body);
-            appData.transactions = appData.transactions.filter(t => t.id !== body.id);
-            
+            // Read-before-write: xóa trên bản mới nhất từ Gist
+            const latest = await getLatestCloudData(token, gistId);
+            latest.transactions = latest.transactions.filter(t => t.id !== body.id);
+
             await saveToGistCloud(token, gistId, {
-                fi_target: appData.fi_target,
-                transactions: appData.transactions
+                fi_target: latest.fi_target,
+                transactions: latest.transactions
             });
-            
+
+            appData.fi_target = latest.fi_target;
+            appData.transactions = latest.transactions;
+            lastCloudFetchTime = Date.now();
+
             return mockResponse({
                 status: 'success',
                 fi_target: appData.fi_target,
