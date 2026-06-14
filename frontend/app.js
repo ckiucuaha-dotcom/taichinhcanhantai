@@ -478,8 +478,17 @@ async function loadAppData() {
         // Find transactions present in browser cache but not on server yet (local-only)
         const serverTxIds = new Set(data.transactions.map(t => t.id));
         const localOnlyTxs = localTxs.filter(t => t.id && !serverTxIds.has(t.id));
-        
-        if (localOnlyTxs.length > 0) {
+
+        // QUAN TRỌNG: Ở chế độ Cloud Gist, Gist là nguồn chân lý duy nhất.
+        // KHÔNG merge cache cũ đẩy ngược lên — nếu không, giao dịch đã xóa ở máy khác
+        // sẽ bị máy này "hồi sinh" do cache cũ vẫn còn (resurrection bug đa máy).
+        if (isCloudMode()) {
+            appData.fi_target = data.fi_target;
+            appData.transactions = data.transactions;
+            // Đồng bộ lại cache trình duyệt cho khớp Gist (xóa các bản ghi cũ đã bị xóa nơi khác)
+            localStorage.setItem('cached_fi_target', appData.fi_target);
+            localStorage.setItem('cached_transactions', JSON.stringify(appData.transactions));
+        } else if (localOnlyTxs.length > 0) {
             console.log(`Found ${localOnlyTxs.length} local-only transactions in browser. Syncing/merging with server...`);
             const mergedTxs = [...data.transactions, ...localOnlyTxs];
             const localTarget = cachedTarget ? parseFloat(cachedTarget) : data.fi_target;
