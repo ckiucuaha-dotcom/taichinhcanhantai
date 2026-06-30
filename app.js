@@ -182,7 +182,7 @@ function isTransactionInDateRange(txDateStr, range) {
 // Category Option Mappings
 const categoryMap = {
     'KHOẢN THU': ['Buôn bán', 'Thu phí', 'Nhận tiền D', 'Mượn', 'Nợ trả', 'Quỹ', 'Có sẵn / Khác', 'Lương'],
-    'KHOẢN CHI': ['Nhu yếu phẩm', 'Ăn uống', 'Mua sắm', 'Thư giãn', 'Phát sinh', 'Cấp tiền TG', 'Mua đồ d', 'Trả nợ'],
+    'KHOẢN CHI': ['Nhu yếu phẩm', 'Ăn uống', 'Mua sắm', 'Thư giãn', 'Phát sinh', 'Cấp tiền TG', 'Mua đồ d', 'Trả nợ', 'Mua đầu tư'],
     'KHOẢN NỢ': ['Khoản nợ'],
     'ĐÒI NỢ': ['Đòi nợ'],
     'DOANH THU ĐẦU TƯ': ['Doanh thu đầu tư']
@@ -726,15 +726,22 @@ function calculateStats() {
                 repaymentsSumAllTime += tx.amount;
             }
         } else if (tx.group === 'KHOẢN CHI') {
-            expenseAllTime += tx.amount;
-            if (inRange) expenseFiltered += tx.amount;
-            
-            // Subtract from cash flow if after starting balance
+            const isBuyInvestment = tx.category === 'Mua đầu tư';
+
+            if (isBuyInvestment) {
+                // Chuyển dạng tài sản: tiền mặt → đầu tư (không phải chi tiêu thật)
+                investmentsAllTime += tx.amount;
+            } else {
+                expenseAllTime += tx.amount;
+                if (inRange) expenseFiltered += tx.amount;
+            }
+
+            // Subtract from cash flow if after starting balance (luôn giảm tiền mặt)
             if (tx.seq > startingCashSeq) {
                 cashFlowAfterStarting -= tx.amount;
             }
-            
-            if (tx.category === 'Trả nợ' || tx.item.toLowerCase().startsWith('trả nợ') || tx.item.toLowerCase().startsWith('trả ')) {
+
+            if (!isBuyInvestment && (tx.category === 'Trả nợ' || tx.item.toLowerCase().startsWith('trả nợ') || tx.item.toLowerCase().startsWith('trả '))) {
                 paymentsSumAllTime += tx.amount;
             }
         } else if (tx.group === 'KHOẢN NỢ') {
@@ -842,7 +849,7 @@ function renderWidgets() {
     investmentsListEl.innerHTML = '';
     const investItems = {};
     appData.transactions
-        .filter(t => t.group === 'DOANH THU ĐẦU TƯ' && isTransactionInDateRange(t.date, range).inRange)
+        .filter(t => (t.group === 'DOANH THU ĐẦU TƯ' || (t.group === 'KHOẢN CHI' && t.category === 'Mua đầu tư')) && isTransactionInDateRange(t.date, range).inRange)
         .forEach(t => {
             investItems[t.item] = (investItems[t.item] || 0) + t.amount;
         });
@@ -1067,7 +1074,7 @@ function renderWidgets() {
         .filter(t => t.group === 'KHOẢN THU' && t.category !== 'Có sẵn / Khác' && isTransactionInDateRange(t.date, range).inRange)
         .reduce((sum, t) => sum + t.amount, 0);
     let totalExpense = appData.transactions
-        .filter(t => t.group === 'KHOẢN CHI' && isTransactionInDateRange(t.date, range).inRange)
+        .filter(t => t.group === 'KHOẢN CHI' && t.category !== 'Mua đầu tư' && isTransactionInDateRange(t.date, range).inRange)
         .reduce((sum, t) => sum + t.amount, 0);
     const surplus = totalOpIncome - totalExpense;
     const savingsRate = totalOpIncome > 0 ? (surplus / totalOpIncome) * 100 : 0;
@@ -1075,7 +1082,7 @@ function renderWidgets() {
     // Find top expense category in range
     const expenseCats = {};
     appData.transactions
-        .filter(t => t.group === 'KHOẢN CHI' && isTransactionInDateRange(t.date, range).inRange)
+        .filter(t => t.group === 'KHOẢN CHI' && t.category !== 'Mua đầu tư' && isTransactionInDateRange(t.date, range).inRange)
         .forEach(t => {
             expenseCats[t.category] = (expenseCats[t.category] || 0) + t.amount;
         });
@@ -1213,6 +1220,7 @@ function renderCharts() {
                 }
             } else if (t.group === 'KHOẢN CHI') {
                 runningExpense += t.amount;
+                if (t.category === 'Mua đầu tư') runningInvestments += t.amount; // chuyển dạng tài sản
                 if (t.category === 'Trả nợ' || t.item.toLowerCase().startsWith('trả nợ') || t.item.toLowerCase().startsWith('trả ')) {
                     runningPayments += t.amount;
                 }
@@ -1251,6 +1259,7 @@ function renderCharts() {
                 }
             } else if (t.group === 'KHOẢN CHI') {
                 runningExpense += t.amount;
+                if (t.category === 'Mua đầu tư') runningInvestments += t.amount; // chuyển dạng tài sản
                 if (t.category === 'Trả nợ' || t.item.toLowerCase().startsWith('trả nợ') || t.item.toLowerCase().startsWith('trả ')) {
                     runningPayments += t.amount;
                 }
@@ -1311,6 +1320,7 @@ function renderCharts() {
                 }
             } else if (t.group === 'KHOẢN CHI') {
                 groups[groupKey].expense += t.amount;
+                if (t.category === 'Mua đầu tư') groups[groupKey].roi += t.amount; // chuyển dạng tài sản
                 if (t.item.toLowerCase().startsWith('trả nợ') || t.item.toLowerCase().startsWith('trả ')) {
                     groups[groupKey].payments += t.amount;
                 }
@@ -1360,6 +1370,7 @@ function renderCharts() {
                     }
                 } else if (t.group === 'KHOẢN CHI') {
                     runningExpense += t.amount;
+                    if (t.category === 'Mua đầu tư') runningInvestments += t.amount; // chuyển dạng tài sản
                     if (t.item.toLowerCase().startsWith('trả nợ') || t.item.toLowerCase().startsWith('trả ')) {
                         runningPayments += t.amount;
                     }
@@ -1466,7 +1477,7 @@ function renderCharts() {
     // 2. Expense breakdown doughnut chart (filtered by range)
     const expenseCats = {};
     appData.transactions
-        .filter(t => (t.group === 'KHOẢN CHI' || t.group === 'ĐÒI NỢ') && isTransactionInDateRange(t.date, range).inRange)
+        .filter(t => ((t.group === 'KHOẢN CHI' && t.category !== 'Mua đầu tư') || t.group === 'ĐÒI NỢ') && isTransactionInDateRange(t.date, range).inRange)
         .forEach(t => {
             expenseCats[t.category] = (expenseCats[t.category] || 0) + t.amount;
         });
